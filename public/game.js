@@ -269,7 +269,7 @@ function handleRoundResult(message) {
                 game.round = 1;
                 playerScoreElement.textContent = "0";
                 aiScoreElement.textContent = "0";
-                startButtonElement.onclick = startNetworkGame;
+                startButtonElement.onclick = sendStartGame;
                 sendStartGame();
             };
         } else {
@@ -904,3 +904,4 @@ document.addEventListener('keyup', (e) => {
             game.player.vy += Math.sin(angle) * dashSpeed;
         }
     }
+});
