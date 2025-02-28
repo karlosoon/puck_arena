@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Битва на арене - Онлайн</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="left-panel">
+        <h1>Параметры</h1>
+        <div class="controls">
+            <div class="control-group">
+                <label for="restitution">Сила отталкивания:</label>
+                <input type="range" id="restitution" min="0.1" max="2.0" step="0.1" value="0.8">
+                <span id="restitution-value">0.8</span>
+            </div>
+            <div class="control-group">
+                <label for="mass">Инерция (масса):</label>
+                <input type="range" id="mass" min="1" max="10" step="0.5" value="7">
+                <span id="mass-value">7</span>
+            </div>
+            <div class="control-group">
+                <label for="friction">Трение:</label>
+                <input type="range" id="friction" min="0.01" max="0.20" step="0.01" value="0.07">
+                <span id="friction-value">0.07</span>
+            </div>
+            <div class="control-group">
+                <label for="maxDashPower">Макс. сила рывка:</label>
+                <input type="range" id="maxDashPower" min="5" max="40" step="1" value="30">
+                <span id="maxDashPower-value">30</span>
+            </div>
+            <div class="control-group">
+                <label for="dashCooldown">Кулдаун рывка (сек):</label>
+                <input type="range" id="dashCooldown" min="0.1" max="3.0" step="0.1" value="0.7">
+                <span id="dashCooldown-value">0.7</span>
+            </div>
+            <div class="control-group">
+                <label for="playerSize">Размер игроков (px):</label>
+                <input type="range" id="playerSize" min="10" max="50" step="1" value="40">
+                <span id="playerSize-value">40</span>
+            </div>
+            <div class="control-group">
+                <label for="dashChargeRate">Скорость накопления:</label>
+                <input type="range" id="dashChargeRate" min="0.5" max="5.0" step="0.1" value="2.5">
+                <span id="dashChargeRate-value">2.5</span>
+            </div>
+            <div class="control-group">
+                <label for="ghostDuration">Длит. исчезновения:</label>
+                <input type="range" id="ghostDuration" min="0.1" max="2.0" step="0.1" value="0.5">
+                <span id="ghostDuration-value">0.5</span>
+            </div>
+            <div class="control-group">
+                <label for="ghostCooldown">Кулдаун исчезновения:</label>
+                <input type="range" id="ghostCooldown" min="0.5" max="5.0" step="0.1" value="2.0">
+                <span id="ghostCooldown-value">2.0</span>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <p><strong>Управление:</strong><br>
+            - Наведите курсор мыши, чтобы задать направление<br>
+            - <kbd>ПРОБЕЛ</kbd> (удержание) - заряд рывка<br>
+            - <kbd>ПРОБЕЛ</kbd> (отпускание) - выполнить рывок<br>
+            - <kbd>D</kbd> - активировать режим исчезновения</p>
+            <p><strong>Цель:</strong> вытолкните противника за пределы игрового поля.</p>
+            
+            <div id="network-controls">
+                <button id="create-game" class="network-button">Создать онлайн-игру</button>
+                <div id="invite-box" style="display: none;">
+                    <p>Поделитесь этим кодом с другом:</p>
+                    <div id="game-code" class="game-code"></div>
+                    <button id="copy-code" class="network-button small">Копировать</button>
+                </div>
+                <div id="join-form" class="join-form">
+                    <input type="text" id="join-code" placeholder="Введите код игры">
+                    <button id="join-game" class="network-button">Присоединиться</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="right-panel">
+        <h1>Битва на арене</h1>
+        <div id="connection-status" class="connection-status">Не подключено</div>
+        <div class="score-board">
+            <span style="color:#22aaff">Синий: <span id="player-score">0</span></span> - 
+            <span style="color:#ff4444">Красный: <span id="ai-score">0</span></span>
+        </div>
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+        <div id="round-message" style="font-size: 24px; font-weight: bold; margin-top: 10px;">Раунд 1</div>
+        <button id="start-button" class="start-button">Начать раунд</button>
+        <div id="countdown" class="countdown">3</div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>

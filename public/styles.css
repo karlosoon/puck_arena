@@ -1,0 +1,209 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    background-color: #222;
+    color: #eee;
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+}
+.left-panel {
+    width: 300px;
+    padding-right: 20px;
+}
+.right-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+canvas {
+    background-color: #333;
+    border: 1px solid #555;
+    margin-bottom: 20px;
+}
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    width: 100%;
+    background-color: #333;
+    padding: 15px;
+    border-radius: 8px;
+}
+.control-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.control-group label {
+    width: 150px;
+    color: #ccc;
+    font-size: 12px;
+}
+.control-group input {
+    width: 100px;
+    background-color: #444;
+    border: 1px solid #555;
+    height: 8px;
+    border-radius: 4px;
+    outline: none;
+}
+.control-group input::-webkit-slider-thumb {
+    background: #66aaff;
+}
+.control-group span {
+    width: 30px;
+    text-align: right;
+    color: #66aaff;
+    font-size: 12px;
+}
+.control-check {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.control-check input[type="checkbox"] {
+    margin-right: 10px;
+}
+.control-check label {
+    color: #ccc;
+    font-size: 14px;
+}
+.score-board {
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: bold;
+}
+.instructions {
+    max-width: 600px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    background-color: #333;
+    padding: 15px;
+    border-radius: 8px;
+}
+.start-button {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: none;
+    font-size: 16px;
+    margin: 10px auto;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.countdown {
+    font-size: 48px;
+    font-weight: bold;
+    color: #fff;
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+h1 {
+    text-align: center;
+    margin-top: 0;
+}
+h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #ddd;
+}
+
+/* Стили для сетевых элементов */
+.connection-status {
+    margin: 10px 0;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    background-color: #444;
+    color: #aaa;
+}
+
+.connection-status.connected {
+    background-color: #285;
+    color: white;
+}
+
+.connection-status.waiting {
+    background-color: #a82;
+    color: white;
+}
+
+.connection-status.error {
+    background-color: #922;
+    color: white;
+}
+
+.network-button {
+    background-color: #2266aa;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    font-size: 14px;
+    margin: 10px 0;
+    cursor: pointer;
+    border-radius: 5px;
+    width: 100%;
+}
+
+.network-button.small {
+    padding: 5px 10px;
+    font-size: 12px;
+    width: auto;
+}
+
+.network-button:hover {
+    background-color: #3377bb;
+}
+
+.network-button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+#network-controls {
+    margin-top: 20px;
+    border-top: 1px solid #444;
+    padding-top: 15px;
+}
+
+.game-code {
+    background-color: #444;
+    color: #fff;
+    font-family: monospace;
+    font-size: 18px;
+    padding: 10px;
+    text-align: center;
+    border-radius: 4px;
+    margin: 10px 0;
+    letter-spacing: 2px;
+}
+
+.join-form {
+    display: flex;
+    flex-direction: column;
+    margin-top: 15px;
+}
+
+.join-form input {
+    padding: 8px;
+    margin-bottom: 10px;
+    background-color: #444;
+    border: 1px solid #555;
+    color: #fff;
+    border-radius: 4px;
+}
+
+#invite-box {
+    margin-top: 10px;
+}
