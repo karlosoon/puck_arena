@@ -28,6 +28,8 @@ const params = {
 };
 
 // Состояние игры
+const INTERPOLATION_DELAY = 100; // milliseconds
+
 const game = {
     arenaRadius: 250,
     playerRadius: 40,
@@ -42,11 +44,17 @@ const game = {
         dashPower: 0,
         dashCharging: false,
         ghostActive: false,
-        ghostCooldown: 0
+        ghostCooldown: 0,
+        displayX: -80, 
+        displayY: 0,
+        stateBuffer: []
     },
     ai: {  // теперь это второй игрок
         x: 80,
         y: 0,
+        displayX: 80, 
+        displayY: 0,
+        stateBuffer: [],
         vx: 0,
         vy: 0,
         dashCooldown: 0,
@@ -200,12 +208,29 @@ function handleNetworkMessage(message) {
             break;
             
         case 'game_state':
-            if (game.isPlayer2) {
-                // Обновление состояния первого игрока (синего)
-                updatePlayerFromNetwork(game.player, message.player);
-            } else if (game.isHost) {
-                // Обновление состояния второго игрока (красного)
-                updatePlayerFromNetwork(game.ai, message.player);
+            let remotePlayerToUpdate;
+            if (game.isPlayer2) { // This client is Player 2, so game.player is remote
+                remotePlayerToUpdate = game.player;
+            } else if (game.isHost) { // This client is Host, so game.ai is remote
+                remotePlayerToUpdate = game.ai;
+            }
+
+            if (remotePlayerToUpdate) {
+                updatePlayerFromNetwork(remotePlayerToUpdate, message.player); // Update non-positional states
+
+                // Add the received state to its buffer
+                remotePlayerToUpdate.stateBuffer.push({
+                    timestamp: Date.now(),
+                    x: message.player.x,
+                    y: message.player.y,
+                    vx: message.player.vx,
+                    vy: message.player.vy
+                });
+
+                // Keep buffer size manageable
+                if (remotePlayerToUpdate.stateBuffer.length > 20) {
+                    remotePlayerToUpdate.stateBuffer.shift();
+                }
             }
             break;
             
@@ -222,10 +247,7 @@ function handleNetworkMessage(message) {
 }
 
 function updatePlayerFromNetwork(localPlayer, networkPlayer) {
-    localPlayer.x = networkPlayer.x;
-    localPlayer.y = networkPlayer.y;
-    localPlayer.vx = networkPlayer.vx;
-    localPlayer.vy = networkPlayer.vy;
+    // DO NOT update localPlayer.x, localPlayer.y, localPlayer.vx, localPlayer.vy directly
     localPlayer.dashCooldown = networkPlayer.dashCooldown;
     localPlayer.isDashing = networkPlayer.isDashing;
     localPlayer.dashPower = networkPlayer.dashPower;
@@ -475,9 +497,28 @@ function drawProgressBar(x, y, width, height, progress, color) {
 // Отрисовка игры
 function render() {
     // Очистка холста
+    // Очистка холста
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
+
+    // Determine draw positions for player (Blue)
+    let playerDrawX = game.player.x;
+    let playerDrawY = game.player.y;
+    if (game.isNetworkGame && game.isPlayer2) { // This client is P2, game.player is the HOST (remote)
+        interpolatePlayerPosition(game.player);
+        playerDrawX = game.player.displayX;
+        playerDrawY = game.player.displayY;
+    }
+
+    // Determine draw positions for ai (Red)
+    let aiDrawX = game.ai.x;
+    let aiDrawY = game.ai.y;
+    if (game.isNetworkGame && game.isHost) { // This client is Host, game.ai is P2 (remote)
+        interpolatePlayerPosition(game.ai);
+        aiDrawX = game.ai.displayX;
+        aiDrawY = game.ai.displayY;
+    }
     
     // Отрисовка фона арены
     ctx.beginPath();
@@ -495,14 +536,14 @@ function render() {
     // Отрисовка линии направления для игрока
     if (game.roundActive) {
         // Для первого игрока (синего)
-        if ((!game.isNetworkGame || game.isHost) && !game.player.ghostActive) {
+        if ((!game.isNetworkGame || game.isHost) && !game.player.ghostActive) { 
             ctx.beginPath();
-            ctx.moveTo(game.player.x, game.player.y);
-            const angle = Math.atan2(game.mouse.y - game.player.y, game.mouse.x - game.player.x);
+            ctx.moveTo(playerDrawX, playerDrawY); // Use draw positions
+            const angle = Math.atan2(game.mouse.y - playerDrawY, game.mouse.x - playerDrawX);
             const lineLength = 30 + game.player.dashPower * 30;
             ctx.lineTo(
-                game.player.x + Math.cos(angle) * lineLength,
-                game.player.y + Math.sin(angle) * lineLength
+                playerDrawX + Math.cos(angle) * lineLength,
+                playerDrawY + Math.sin(angle) * lineLength
             );
             ctx.strokeStyle = game.player.dashCharging ? '#22aaff' : '#0066cc';
             ctx.lineWidth = 2;
@@ -510,24 +551,34 @@ function render() {
         }
         
         // Для второго игрока (красного)
-        if ((game.isNetworkGame && game.isPlayer2) && !game.ai.ghostActive) {
-            ctx.beginPath();
-            ctx.moveTo(game.ai.x, game.ai.y);
-            const angle = Math.atan2(game.mouse.y - game.ai.y, game.mouse.x - game.ai.x);
-            const lineLength = 30 + game.ai.dashPower * 30;
-            ctx.lineTo(
-                game.ai.x + Math.cos(angle) * lineLength,
-                game.ai.y + Math.sin(angle) * lineLength
-            );
-            ctx.strokeStyle = game.ai.dashCharging ? '#ff4444' : '#cc0000';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+        // This logic is for the player who controls the red entity (either local P2, or local AI)
+        const redPlayerEntity = game.isNetworkGame && game.isPlayer2 ? game.ai : game.ai; // game.ai is local for P2
+        const redPlayerDrawX = game.isNetworkGame && game.isPlayer2 ? aiDrawX : aiDrawX; // if P2, ai is local
+        const redPlayerDrawY = game.isNetworkGame && game.isPlayer2 ? aiDrawY : aiDrawY; // if P2, ai is local
+
+        if ((!game.isNetworkGame || game.isPlayer2) && !redPlayerEntity.ghostActive) { 
+            if (game.isNetworkGame && game.isPlayer2) { // Network game, this client is P2 (controls red)
+                 ctx.beginPath();
+                 ctx.moveTo(redPlayerDrawX, redPlayerDrawY);
+                 const angle = Math.atan2(game.mouse.y - redPlayerDrawY, game.mouse.x - redPlayerDrawX);
+                 const lineLength = 30 + redPlayerEntity.dashPower * 30;
+                 ctx.lineTo(
+                     redPlayerDrawX + Math.cos(angle) * lineLength,
+                     redPlayerDrawY + Math.sin(angle) * lineLength
+                 );
+                 ctx.strokeStyle = redPlayerEntity.dashCharging ? '#ff4444' : '#cc0000';
+                 ctx.lineWidth = 2;
+                 ctx.stroke();
+            } else if (!game.isNetworkGame && !game.ai.ghostActive) { 
+                // Local game, AI (red) does not show mouse-based aiming line. 
+                // Or add AI aiming logic here if desired.
+            }
         }
     }
     
     // ===== ОТРИСОВКА ИГРОКА =====
     ctx.beginPath();
-    ctx.arc(game.player.x, game.player.y, game.playerRadius, 0, Math.PI * 2);
+    ctx.arc(playerDrawX, playerDrawY, game.playerRadius, 0, Math.PI * 2); // Use draw positions
     
     // Выбор цвета игрока в зависимости от режима
     if (game.player.ghostActive) {
@@ -546,7 +597,7 @@ function render() {
     
     // ===== ОТРИСОВКА ВТОРОГО ИГРОКА =====
     ctx.beginPath();
-    ctx.arc(game.ai.x, game.ai.y, game.aiRadius, 0, Math.PI * 2);
+    ctx.arc(aiDrawX, aiDrawY, game.aiRadius, 0, Math.PI * 2); // Use draw positions
     
     // Выбор цвета в зависимости от режима
     if (game.ai.ghostActive) {
@@ -571,20 +622,20 @@ function render() {
         // Индикатор кулдауна рывка (оранжевый)
         if (game.player.dashCooldown > 0) {
             const dashProgress = 1 - game.player.dashCooldown / (params.dashCooldown * 60);
-            drawProgressBar(game.player.x, game.player.y - game.playerRadius - 10, 
+            drawProgressBar(playerDrawX, playerDrawY - game.playerRadius - 10, 
                            game.playerRadius * 2, 5, dashProgress, '#ff9900');
         }
         
         // Индикатор зарядки рывка (зеленый)
         if (game.player.dashCharging) {
-            drawProgressBar(game.player.x, game.player.y - game.playerRadius - 10, 
+            drawProgressBar(playerDrawX, playerDrawY - game.playerRadius - 10, 
                            game.playerRadius * 2, 5, game.player.dashPower, '#00ff88');
         }
         
         // Индикатор кулдауна исчезновения (пурпурный)
         if (game.player.ghostCooldown > 0) {
             const ghostProgress = 1 - game.player.ghostCooldown / (params.ghostCooldown * 60);
-            drawProgressBar(game.player.x, game.player.y - game.playerRadius - 18, 
+            drawProgressBar(playerDrawX, playerDrawY - game.playerRadius - 18, 
                            game.playerRadius * 2, 5, ghostProgress, '#cc44ff');
         }
     }
@@ -594,25 +645,66 @@ function render() {
         // Индикатор кулдауна рывка (оранжевый)
         if (game.ai.dashCooldown > 0) {
             const dashProgress = 1 - game.ai.dashCooldown / (params.dashCooldown * 60);
-            drawProgressBar(game.ai.x, game.ai.y - game.aiRadius - 10, 
+            drawProgressBar(aiDrawX, aiDrawY - game.aiRadius - 10, 
                           game.aiRadius * 2, 5, dashProgress, '#ff9900');
         }
         
         // Индикатор зарядки рывка (зеленый)
         if (game.ai.dashCharging) {
-            drawProgressBar(game.ai.x, game.ai.y - game.aiRadius - 10, 
+            drawProgressBar(aiDrawX, aiDrawY - game.aiRadius - 10, 
                           game.aiRadius * 2, 5, game.ai.dashPower, '#00ff88');
         }
         
         // Индикатор кулдауна исчезновения (пурпурный)
         if (game.ai.ghostCooldown > 0) {
             const ghostProgress = 1 - game.ai.ghostCooldown / (params.ghostCooldown * 60);
-            drawProgressBar(game.ai.x, game.ai.y - game.aiRadius - 18, 
+            drawProgressBar(aiDrawX, aiDrawY - game.aiRadius - 18, 
                           game.aiRadius * 2, 5, ghostProgress, '#cc44ff');
         }
     }
     
     ctx.restore();
+}
+
+function interpolatePlayerPosition(player) {
+    const now = Date.now();
+    const renderTimestamp = now - INTERPOLATION_DELAY;
+
+    const buffer = player.stateBuffer;
+
+    // Find two states in the buffer to interpolate between
+    let state1 = null;
+    let state2 = null;
+
+    for (let i = buffer.length - 1; i >= 0; i--) {
+        if (buffer[i].timestamp <= renderTimestamp) {
+            state1 = buffer[i];
+            if (i + 1 < buffer.length) {
+                state2 = buffer[i+1];
+            }
+            break;
+        }
+    }
+
+    if (state1 && state2) {
+        const t = (renderTimestamp - state1.timestamp) / (state2.timestamp - state1.timestamp);
+        // Ensure t is between 0 and 1
+        const clampedT = Math.max(0, Math.min(1, t)); 
+        
+        player.displayX = state1.x + (state2.x - state1.x) * clampedT;
+        player.displayY = state1.y + (state2.y - state1.y) * clampedT;
+    } else if (state1) { // Not enough history to interpolate, or renderTimestamp is too old
+        player.displayX = state1.x;
+        player.displayY = state1.y;
+    } else if (buffer.length > 0) { 
+        const targetState = buffer[buffer.length -1]; 
+        player.displayX = targetState.x;
+        player.displayY = targetState.y;
+    }
+    else { 
+       player.displayX = player.x; 
+       player.displayY = player.y;
+    }
 }
 
 // Основной игровой цикл
@@ -786,6 +878,7 @@ function startRound() {
     
     // Сброс положения игроков
     game.player.x = -80;
+    game.player.x = -80;
     game.player.y = 0;
     game.player.vx = 0;
     game.player.vy = 0;
@@ -795,6 +888,9 @@ function startRound() {
     game.player.dashCharging = false;
     game.player.ghostActive = false;
     game.player.ghostCooldown = 0;
+    game.player.displayX = -80; 
+    game.player.displayY = 0;
+    game.player.stateBuffer = []; 
     
     game.ai.x = 80;
     game.ai.y = 0;
@@ -806,6 +902,9 @@ function startRound() {
     game.ai.dashCharging = false;
     game.ai.ghostActive = false;
     game.ai.ghostCooldown = 0;
+    game.ai.displayX = 80; 
+    game.ai.displayY = 0;
+    game.ai.stateBuffer = []; 
     
     game.roundActive = true;
     game.waitingForStart = false;
