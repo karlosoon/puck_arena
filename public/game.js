@@ -216,9 +216,7 @@ function handleNetworkMessage(message) {
             }
 
             if (remotePlayerToUpdate) {
-                updatePlayerFromNetwork(remotePlayerToUpdate, message.player); // Update non-positional states
-
-                // Add the received state to its buffer
+                // First, push to stateBuffer for interpolation
                 remotePlayerToUpdate.stateBuffer.push({
                     timestamp: Date.now(),
                     x: message.player.x,
@@ -226,11 +224,13 @@ function handleNetworkMessage(message) {
                     vx: message.player.vx,
                     vy: message.player.vy
                 });
-
-                // Keep buffer size manageable
                 if (remotePlayerToUpdate.stateBuffer.length > 20) {
                     remotePlayerToUpdate.stateBuffer.shift();
                 }
+
+                // Then, call updatePlayerFromNetwork to update the core properties
+                // (including x, y, vx, vy for physics)
+                updatePlayerFromNetwork(remotePlayerToUpdate, message.player);
             }
             break;
             
@@ -247,7 +247,10 @@ function handleNetworkMessage(message) {
 }
 
 function updatePlayerFromNetwork(localPlayer, networkPlayer) {
-    // DO NOT update localPlayer.x, localPlayer.y, localPlayer.vx, localPlayer.vy directly
+    localPlayer.x = networkPlayer.x;
+    localPlayer.y = networkPlayer.y;
+    localPlayer.vx = networkPlayer.vx;
+    localPlayer.vy = networkPlayer.vy;
     localPlayer.dashCooldown = networkPlayer.dashCooldown;
     localPlayer.isDashing = networkPlayer.isDashing;
     localPlayer.dashPower = networkPlayer.dashPower;
