@@ -28,7 +28,7 @@ const params = {
 };
 
 // Состояние игры
-const INTERPOLATION_DELAY = 100; // milliseconds
+const INTERPOLATION_DELAY = 50; // milliseconds
 
 const game = {
     arenaRadius: 250,
